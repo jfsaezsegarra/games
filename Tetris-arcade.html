@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tetris Arcade - IES La Vall de Segó</title>
+<style>
+:root{
+  --gold:#d8a72d; --gold2:#f2d06b; --bg:#050505; --panel:#121212; --text:#fff;
+  --board-w:450px; --board-h:750px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at top,#222 0%,#050505 55%,#000 100%);color:var(--text);font-family:Arial,Helvetica,sans-serif;touch-action:none;user-select:none}
+.hidden{display:none!important}
+#startScreen,#gameScreen{width:100vw;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:12px}
+.menu{width:min(760px,96vw);background:rgba(18,18,18,.96);border:3px solid var(--gold);border-radius:26px;padding:22px;box-shadow:0 0 35px rgba(216,167,45,.35)}
+.logoText{font-size:clamp(28px,5vw,54px);font-weight:900;color:var(--gold2);letter-spacing:2px;text-shadow:0 0 18px rgba(242,208,107,.55);margin:4px 0 0}
+.subtitle{color:#eee;margin:7px 0 20px;font-size:clamp(15px,2.2vw,22px)}
+.gridMenu{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}
+.field{background:#1b1b1b;border:1px solid rgba(216,167,45,.45);border-radius:16px;padding:12px;text-align:left}
+.field label{display:block;color:var(--gold2);font-weight:bold;margin-bottom:8px;font-size:15px}
+select,button{width:100%;font-size:20px;padding:13px 16px;border-radius:13px;border:2px solid var(--gold);background:#f7f2e8;color:#111;font-weight:800}
+button{cursor:pointer;background:var(--gold);margin-top:12px}button:active{transform:scale(.98);background:var(--gold2)}
+.instructions{font-size:14px;line-height:1.45;color:#e8e1d0;margin-top:12px}
+.leaderboard{margin-top:14px;background:#090909;border:1px solid rgba(216,167,45,.55);border-radius:16px;padding:12px;text-align:left}
+.leaderboard h3{margin:0 0 8px;color:var(--gold2);text-align:center;font-size:20px}
+.leaderboard table{width:100%;border-collapse:collapse;font-size:15px}
+.leaderboard th,.leaderboard td{padding:6px;border-bottom:1px solid rgba(216,167,45,.18)}
+.leaderboard th{color:var(--gold2)}
+.leaderboard .empty{text-align:center;color:#bbb;padding:8px}
+.smallBtn{font-size:14px;padding:8px 10px;margin-top:8px}
+.arcadeLayout{height:100%;width:100%;display:flex;align-items:center;justify-content:center;gap:14px;transform-origin:center center}
+.player{position:relative;background:rgba(15,15,15,.96);border:3px solid var(--gold);border-radius:22px;padding:10px;box-shadow:0 0 24px rgba(216,167,45,.22);display:grid;grid-template-columns:var(--board-w) 220px;gap:10px;align-items:start}
+.player.single{grid-template-columns:var(--board-w) 160px}
+.side{display:flex;flex-direction:column;gap:10px}.title{font-size:22px;font-weight:900;color:var(--gold2);margin:0;text-shadow:0 0 9px rgba(242,208,107,.4)}
+.scoreBox{background:#090909;border:1px solid rgba(216,167,45,.55);border-radius:14px;padding:10px;text-align:left}.scoreBox b{color:var(--gold2)}
+.board{width:var(--board-w);height:var(--board-h);background:#000;border:5px solid var(--gold);border-radius:10px;box-shadow:inset 0 0 16px rgba(216,167,45,.15)}
+.next{width:140px;height:120px;background:#000;border:3px solid var(--gold);border-radius:10px}.miniLabel{color:var(--gold2);font-weight:bold;margin-bottom:4px;text-align:left}
+#winner{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;background:rgba(0,0,0,.92);border:4px solid var(--gold2);border-radius:26px;padding:24px 34px;font-size:clamp(24px,4vw,48px);font-weight:900;color:var(--gold2);box-shadow:0 0 40px rgba(242,208,107,.55);max-width:90vw}
+.topButtons{position:fixed;right:12px;top:10px;z-index:11;display:flex;gap:8px}.topButtons button{width:auto;margin:0;font-size:15px;padding:9px 12px}
+.flash{animation:flashBoard .35s ease-in-out 2}@keyframes flashBoard{0%{filter:brightness(1)}50%{filter:brightness(2.4) drop-shadow(0 0 20px var(--gold2))}100%{filter:brightness(1)}}
+.tetrisText{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);font-size:52px;font-weight:900;color:#fff;text-shadow:0 0 12px var(--gold2),0 0 28px var(--gold);pointer-events:none;animation:tetrisPop .85s ease-out forwards;z-index:4}@keyframes tetrisPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+@media(max-width:900px){.gridMenu{grid-template-columns:1fr}.side{display:none}.player{grid-template-columns:var(--board-w)}.arcadeLayout{gap:8px}.topButtons button{font-size:13px;padding:7px 9px}}
+</style>
+</head>
+<body>
+<section id="startScreen">
+  <div class="menu">
+    <div class="logoText">TETRIS ARCADE</div>
+    <div class="subtitle">IES La Vall de Segó</div>
+    <div class="gridMenu">
+      <div class="field"><label>Modo de juego</label><select id="playersMode" onchange="toggleOptions()"><option value="1">1 jugador</option><option value="2">2 jugadores</option><option value="ai">Jugador vs Máquina</option></select></div>
+      <div class="field"><label>Velocidad</label><select id="speed"><option value="850">Lenta</option><option value="600" selected>Normal</option><option value="360">Rápida</option><option value="230">Arcade</option></select></div>
+      <div class="field" id="singleGarbageBox"><label>Bloques sorpresa en 1 jugador</label><select id="singleGarbage"><option value="0" selected>Desactivado</option><option value="20">Cada 20 caídas</option><option value="12">Cada 12 caídas</option><option value="7">Cada 7 caídas - Difícil</option></select></div>
+      <div class="field" id="gameTypeBox"><label>Tipo de partida</label><select id="gameType"><option value="normal">Normal</option><option value="competition">Competición: enviar bloques al rival</option></select></div>
+      <div class="field hidden" id="aiDifficultyBox"><label>Dificultad de la máquina</label><select id="aiDifficulty"><option value="easy">Fácil</option><option value="hard">Difícil</option><option value="god">Modo Dios - imposible</option></select></div>
+    </div>
+    <button onclick="startGame()">START</button>
+    <div class="instructions">Controles: Jugador 1 usa flechas. Jugador 2 usa A/D/S/W. En competición, cada línea completada añade bloques basura al rival. En 1 jugador puedes activar bloques sorpresa cada cierto tiempo. El récord se guarda automáticamente en este navegador.</div>
+    <div class="leaderboard"><h3>🏆 TOP 10 RÉCORDS</h3><div id="leaderboardList"></div><button class="smallBtn" onclick="clearLeaderboard()">Borrar clasificación</button></div>
+  </div>
+</section>
+<section id="gameScreen" class="hidden">
+  <div class="topButtons"><button onclick="pauseGame()" id="pauseBtn">Pausa</button><button onclick="restart()">Menú</button></div>
+  <div id="winner" class="hidden"></div>
+  <div class="arcadeLayout" id="arcadeLayout">
+    <div class="player" id="p1Box">
+      <canvas class="board" id="game1" width="450" height="750"></canvas>
+      <div class="side">
+        <h2 class="title">Jugador 1</h2><div class="scoreBox"><b>Puntos:</b> <span id="score1">0</span><br><b>Récord:</b> <span id="record1">0</span><br><b>Líneas:</b> <span id="lines1">0</span></div>
+        <div><div class="miniLabel">Siguiente</div><canvas class="next" id="next1" width="140" height="120"></canvas></div>
+      </div>
+    </div>
+    <div class="player hidden" id="p2Box">
+      <canvas class="board" id="game2" width="450" height="750"></canvas>
+      <div class="side">
+        <h2 class="title" id="player2Title">Jugador 2</h2><div class="scoreBox"><b>Puntos:</b> <span id="score2">0</span><br><b>Récord:</b> <span id="record2">0</span><br><b>Líneas:</b> <span id="lines2">0</span></div>
+        <div><div class="miniLabel">Siguiente</div><canvas class="next" id="next2" width="140" height="120"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+const COLS=12, ROWS=20, W=450, H=750, CELL=W/COLS;
+const colors=[null,'#00ffff','#ffff00','#9b59b6','#2ecc71','#e74c3c','#3498db','#e67e22','#777'];
+const pieces=[[[1,1,1,1]],[[2,2],[2,2]],[[0,3,0],[3,3,3]],[[0,4,4],[4,4,0]],[[5,5,0],[0,5,5]],[[6,0,0],[6,6,6]],[[0,0,7],[7,7,7]]];
+let game1,game2,mode='1',gameType='normal',aiDifficulty='easy',timer=null,gameFinished=false,paused=false,baseSpeed=600,aiTick=0,singleGarbageRate=0,singleGarbageCounter=0;
+function randomPiece(){return JSON.parse(JSON.stringify(pieces[Math.floor(Math.random()*pieces.length)]));}
+function createGame(canvasId,nextId,scoreId,linesId,recordId,name,isMachine=false){return{canvas:document.getElementById(canvasId),ctx:document.getElementById(canvasId).getContext('2d'),nextCanvas:document.getElementById(nextId),nextCtx:document.getElementById(nextId).getContext('2d'),scoreEl:document.getElementById(scoreId),linesEl:document.getElementById(linesId),recordEl:document.getElementById(recordId),name,isMachine,board:Array.from({length:ROWS},()=>Array(COLS).fill(0)),player:{piece:randomPiece(),x:4,y:0},next:randomPiece(),score:0,lines:0,aiTarget:null,aiDelay:0,box:canvasId==='game1'?document.getElementById('p1Box'):document.getElementById('p2Box')}}
+function toggleOptions(){const m=document.getElementById('playersMode').value;document.getElementById('gameTypeBox').classList.toggle('hidden',m==='1');document.getElementById('aiDifficultyBox').classList.toggle('hidden',m!=='ai');document.getElementById('singleGarbageBox').classList.toggle('hidden',m!=='1');}
+function startGame(){mode=document.getElementById('playersMode').value;gameType=document.getElementById('gameType').value;aiDifficulty=document.getElementById('aiDifficulty').value;baseSpeed=Number(document.getElementById('speed').value);singleGarbageRate=Number(document.getElementById('singleGarbage').value);singleGarbageCounter=0;gameFinished=false;paused=false;aiTick=0;document.getElementById('startScreen').classList.add('hidden');document.getElementById('gameScreen').classList.remove('hidden');document.getElementById('winner').classList.add('hidden');document.getElementById('p2Box').classList.toggle('hidden',mode==='1');document.getElementById('p1Box').classList.toggle('single',mode==='1');game1=createGame('game1','next1','score1','lines1','record1','Jugador 1');game2=createGame('game2','next2','score2','lines2','record2',mode==='ai'?'Máquina':'Jugador 2',mode==='ai');document.getElementById('player2Title').textContent=mode==='ai'?`Máquina (${difficultyName()})`:'Jugador 2';loadRecords();resizeArcade();drawAll();clearInterval(timer);timer=setInterval(tick,baseSpeed);}
+function resizeArcade(){const layout=document.getElementById('arcadeLayout');if(!layout||document.getElementById('gameScreen').classList.contains('hidden'))return;const players=(mode==='1')?1:2;const totalW=players*(450+240)+players*22;const scale=Math.min(1,(innerWidth-18)/totalW,(innerHeight-18)/790);layout.style.transform=`scale(${scale})`;}
+addEventListener('resize',resizeArcade);
+function tick(){if(gameFinished||paused)return;drop(game1,getOpponent(game1));if(mode==='1'){applySinglePlayerGarbage();}else{if(mode==='ai'){aiStep(game2,game1);if(aiDifficulty==='god'&&gameType==='competition')godPressure();}else drop(game2,getOpponent(game2));}drawAll();}
+function drawAll(){drawBoard(game1);drawNext(game1);updateStats(game1);if(mode!=='1'){drawBoard(game2);drawNext(game2);updateStats(game2);}}
+function drawCell(ctx,x,y,color,size=CELL){ctx.fillStyle=color;ctx.fillRect(x*size,y*size,size,size);ctx.strokeStyle='rgba(255,255,255,.18)';ctx.lineWidth=1;ctx.strokeRect(x*size+.5,y*size+.5,size-1,size-1);ctx.fillStyle='rgba(255,255,255,.16)';ctx.fillRect(x*size+3,y*size+3,size-6,4)}
+function drawBoard(g){const ctx=g.ctx;ctx.clearRect(0,0,W,H);ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(216,167,45,.08)';for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL,0);ctx.lineTo(x*CELL,H);ctx.stroke()}for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL);ctx.lineTo(W,y*CELL);ctx.stroke()}for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++)if(g.board[y][x])drawCell(ctx,x,y,colors[g.board[y][x]]);g.player.piece.forEach((row,y)=>row.forEach((v,x)=>{if(v)drawCell(ctx,g.player.x+x,g.player.y+y,colors[v])}))}
+function drawNext(g){const ctx=g.nextCtx;ctx.clearRect(0,0,140,120);ctx.fillStyle='#000';ctx.fillRect(0,0,140,120);const p=g.next,s=25,offX=(140-p[0].length*s)/2,offY=(120-p.length*s)/2;for(let y=0;y<p.length;y++)for(let x=0;x<p[y].length;x++)if(p[y][x]){ctx.fillStyle=colors[p[y][x]];ctx.fillRect(offX+x*s,offY+y*s,s,s);ctx.strokeStyle='rgba(255,255,255,.25)';ctx.strokeRect(offX+x*s,offY+y*s,s,s)}}
+function updateStats(g){g.scoreEl.textContent=g.score;g.linesEl.textContent=g.lines;const key=recordKey(g);const rec=Math.max(Number(localStorage.getItem(key)||0),g.score);localStorage.setItem(key,rec);g.recordEl.textContent=rec;}
+function recordKey(g){return 'tetris_arcade_record_'+(g.isMachine?'machine':'player')}
+function loadRecords(){document.getElementById('record1').textContent=localStorage.getItem('tetris_arcade_record_player')||0;document.getElementById('record2').textContent=localStorage.getItem('tetris_arcade_record_machine')||0;}
+function collide(g){const p=g.player.piece;for(let y=0;y<p.length;y++)for(let x=0;x<p[y].length;x++)if(p[y][x]&&(g.board[g.player.y+y]?.[g.player.x+x])!==0)return true;return false;}
+function merge(g){g.player.piece.forEach((row,y)=>row.forEach((v,x)=>{if(v&&g.board[g.player.y+y])g.board[g.player.y+y][g.player.x+x]=v}))}
+function resetPlayer(g,op){g.player={piece:g.next,x:Math.floor(COLS/2)-2,y:0};g.next=randomPiece();g.aiTarget=null;if(collide(g)){if(mode==='1')finishSingle();else finishGame(op,g)}}
+function drop(g,op){g.player.y++;if(collide(g)){g.player.y--;merge(g);clearLines(g,op);resetPlayer(g,op)}}
+function move(g,dir){if(gameFinished||paused||g?.isMachine)return;g.player.x+=dir;if(collide(g))g.player.x-=dir}
+function rotate(g){if(gameFinished||paused||g?.isMachine)return;rotateGamePiece(g)}
+function rotateGamePiece(g){const old=g.player.piece;g.player.piece=rotatePiece(g.player.piece);if(collide(g)){g.player.x++;if(collide(g)){g.player.x-=2;if(collide(g)){g.player.x++;g.player.piece=old}}}}
+function rotatePiece(p){return p[0].map((_,i)=>p.map(r=>r[i]).reverse())}
+function clearLines(g,op){let count=0;outer:for(let y=ROWS-1;y>=0;y--){for(let x=0;x<COLS;x++)if(!g.board[y][x])continue outer;g.board.splice(y,1);g.board.unshift(Array(COLS).fill(0));count++;y++}if(count){g.lines+=count;g.score+=count*100+(count===4?400:0);effect(g,count);if(gameType==='competition'&&op){let attack=count;if(g.isMachine&&aiDifficulty==='hard')attack++;if(g.isMachine&&aiDifficulty==='god')attack+=2;addGarbage(op,attack);}}}
+function effect(g,count){g.canvas.classList.remove('flash');void g.canvas.offsetWidth;g.canvas.classList.add('flash');if(count>=4){const t=document.createElement('div');t.className='tetrisText';t.textContent='TETRIS!';g.box.appendChild(t);setTimeout(()=>t.remove(),900)}}
+function addGarbage(g,n){for(let i=0;i<n;i++){g.board.shift();const hole=Math.floor(Math.random()*COLS);const row=Array(COLS).fill(8);row[hole]=0;g.board.push(row)}g.aiTarget=null}
+function applySinglePlayerGarbage(){if(mode!=='1'||!singleGarbageRate||gameFinished)return;singleGarbageCounter++;if(singleGarbageCounter>=singleGarbageRate){singleGarbageCounter=0;addGarbage(game1,1);game1.canvas.classList.remove('flash');void game1.canvas.offsetWidth;game1.canvas.classList.add('flash');if(collide(game1))finishSingle();}}
+function getOpponent(g){if(mode==='1')return null;return g===game1?game2:game1}
+function finishGame(winner,loser){gameFinished=true;drawAll();saveHumanScores();const txt=winner?`${loser.name} ha perdido. ¡Gana ${winner.name}!`:'Fin de la partida';showWinner(txt)}
+function finishSingle(){gameFinished=true;drawAll();saveHumanScores();showWinner(`Fin de la partida. Puntuación: ${game1.score}`)}
+function showWinner(txt){const w=document.getElementById('winner');w.innerHTML=txt+'<br><button onclick="restart()">Volver al menú</button>';w.classList.remove('hidden')}
+const LEADERBOARD_KEY='tetris_arcade_top10_records';
+function getLeaderboard(){try{return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)||'[]')}catch(e){return []}}
+function setLeaderboard(list){localStorage.setItem(LEADERBOARD_KEY,JSON.stringify(list.slice(0,10)))}
+function qualifiesForTop10(score){const list=getLeaderboard();return score>0&&(list.length<10||score>list[list.length-1].score)}
+function askPlayerName(defaultName){let name=prompt('¡Nuevo récord! Escribe tu nombre para la clasificación:',defaultName||'Jugador');if(!name)name=defaultName||'Jugador';name=name.trim().substring(0,14).toUpperCase();return name||'JUGADOR'}
+function addLeaderboardScore(name,score,modeLabel){const list=getLeaderboard();list.push({name,score,mode:modeLabel,date:new Date().toLocaleDateString('es-ES')});list.sort((a,b)=>b.score-a.score);setLeaderboard(list);renderLeaderboard()}
+function saveHumanScores(){const modeLabel=mode==='ai'?'VS MÁQUINA':(mode==='2'?'2 JUGADORES':'1 JUGADOR');if(game1&&qualifiesForTop10(game1.score)){addLeaderboardScore(askPlayerName('JUGADOR 1'),game1.score,modeLabel)}if(mode==='2'&&game2&&!game2.isMachine&&qualifiesForTop10(game2.score)){addLeaderboardScore(askPlayerName('JUGADOR 2'),game2.score,modeLabel)}}
+function renderLeaderboard(){const box=document.getElementById('leaderboardList');if(!box)return;const list=getLeaderboard();if(!list.length){box.innerHTML='<div class="empty">Todavía no hay récords guardados.</div>';return}box.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Puntos</th><th>Modo</th></tr></thead><tbody>'+list.map((r,i)=>`<tr><td>${i+1}</td><td>${r.name}</td><td>${r.score}</td><td>${r.mode||''}</td></tr>`).join('')+'</tbody></table>'}
+function clearLeaderboard(){if(confirm('¿Seguro que quieres borrar la clasificación TOP 10?')){localStorage.removeItem(LEADERBOARD_KEY);renderLeaderboard()}}
+function restart(){clearInterval(timer);document.getElementById('gameScreen').classList.add('hidden');document.getElementById('startScreen').classList.remove('hidden');renderLeaderboard()}
+function pauseGame(){paused=!paused;document.getElementById('pauseBtn').textContent=paused?'Continuar':'Pausa'}
+function cloneBoard(b){return b.map(r=>r.slice())}function collidesAt(board,p,x0,y0){for(let y=0;y<p.length;y++)for(let x=0;x<p[y].length;x++)if(p[y][x]&&(board[y0+y]?.[x0+x])!==0)return true;return false}
+function place(board,p,x0,y0){const b=cloneBoard(board);for(let y=0;y<p.length;y++)for(let x=0;x<p[y].length;x++)if(p[y][x]&&b[y0+y])b[y0+y][x0+x]=p[y][x];return b}
+function evalClear(b){let lines=0;const r=[];for(const row of b){if(row.every(Boolean))lines++;else r.push(row)}while(r.length<ROWS)r.unshift(Array(COLS).fill(0));return{board:r,lines}}
+function evaluate(b,lines,diff){let heights=[],holes=0,bump=0;for(let x=0;x<COLS;x++){let h=0,block=false;for(let y=0;y<ROWS;y++){if(b[y][x]){if(!block){h=ROWS-y;block=true}}else if(block)holes++}heights.push(h)}for(let x=0;x<COLS-1;x++)bump+=Math.abs(heights[x]-heights[x+1]);const agg=heights.reduce((a,b)=>a+b,0);if(diff==='easy')return lines*6-agg*.18-holes*1.8-bump*.15+Math.random()*6;if(diff==='god')return lines*120-agg*.72-holes*55-bump*1.8;return lines*40-agg*.45-holes*18-bump*.9}
+function bestMove(g,diff){let best=null;for(let r=0,p=g.player.piece;r<4;r++,p=rotatePiece(p)){for(let x=-2;x<=COLS-p[0].length+2;x++){let y=0;if(collidesAt(g.board,p,x,y))continue;while(!collidesAt(g.board,p,x,y+1))y++;const placed=place(g.board,p,x,y);const res=evalClear(placed);const score=evaluate(res.board,res.lines,diff);if(!best||score>best.score)best={x,rot:r,score}}}return best||{x:g.player.x,rot:0}}
+function aiStep(m,op){if(!m||gameFinished||paused)return;if(aiDifficulty==='easy'){m.aiDelay=(m.aiDelay+1)%3;if(m.aiDelay!==0)return}if(aiDifficulty==='god')protectGod(m);if(!m.aiTarget)m.aiTarget=bestMove(m,aiDifficulty);if(aiDifficulty==='god'){while(m.aiTarget.rot>0){rotateGamePiece(m);m.aiTarget.rot--}m.player.x=m.aiTarget.x;while(!collide(m))m.player.y++;m.player.y--;merge(m);clearLines(m,op);resetPlayer(m,op);return}if(m.aiTarget.rot>0){rotateGamePiece(m);m.aiTarget.rot--}else if(m.player.x<m.aiTarget.x){m.player.x++;if(collide(m))m.player.x--}else if(m.player.x>m.aiTarget.x){m.player.x--;if(collide(m))m.player.x++}else{drop(m,op);if(aiDifficulty==='hard')drop(m,op)}}
+function protectGod(m){if(m.board.slice(0,5).some(row=>row.some(Boolean))){m.board.splice(ROWS-5,5);while(m.board.length<ROWS)m.board.unshift(Array(COLS).fill(0));m.aiTarget=null}}
+function godPressure(){aiTick++;if(aiTick%8===0)addGarbage(game1,1)}
+function difficultyName(){return aiDifficulty==='easy'?'Fácil':aiDifficulty==='hard'?'Difícil':'Modo Dios'}
+document.addEventListener('keydown',e=>{if(document.getElementById('gameScreen').classList.contains('hidden'))return;if(e.key==='p'||e.key==='P')pauseGame();if(gameFinished||paused)return;if(e.key==='ArrowLeft')move(game1,-1);if(e.key==='ArrowRight')move(game1,1);if(e.key==='ArrowDown')drop(game1,getOpponent(game1));if(e.key==='ArrowUp')rotate(game1);if(e.code==='Space'){while(!collide(game1))game1.player.y++;game1.player.y--;merge(game1);clearLines(game1,getOpponent(game1));resetPlayer(game1,getOpponent(game1))}if(mode==='2'){if(e.key==='a'||e.key==='A')move(game2,-1);if(e.key==='d'||e.key==='D')move(game2,1);if(e.key==='s'||e.key==='S')drop(game2,getOpponent(game2));if(e.key==='w'||e.key==='W')rotate(game2)}drawAll()});
+toggleOptions();
+renderLeaderboard();
+</script>
+</body>
+</html>
